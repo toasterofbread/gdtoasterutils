@@ -14,19 +14,14 @@ env = SConscript("godot-cpp/SConstruct")
 
 # tweak this if you want to use different folders, or more folders, to store your source code in.
 env.Append(CPPPATH=["src/"])
+env.Append(LIBS=["input", "zinnia"])
 sources = Glob("src/*.cpp")
 
-if env["platform"] == "macos":
-    library = env.SharedLibrary(
-        "bin/libds4godot.{}.{}.framework/libds4godot.{}.{}".format(
-            env["platform"], env["target"], env["platform"], env["target"]
-        ),
-        source=sources,
-    )
-else:
-    library = env.SharedLibrary(
-        "bin/libds4godot{}{}".format(env["suffix"], env["SHLIBSUFFIX"]),
-        source=sources,
-    )
+libname = "libtoasterutils"
+
+library = env.SharedLibrary(
+    "bin/" + libname + env["suffix"] + env["SHLIBSUFFIX"],
+    source=sources,
+)
 
 Default(library)

@@ -28,6 +28,8 @@ namespace godot {
 
             void _process(double delta) override;
 
+            Vector2 getResolution();
+
             int openDevice(const String &p_dev_path);
             void closeDevice();
             int getOpenDeviceFd();
@@ -36,6 +38,7 @@ namespace godot {
             bool ungrab();
 
             Vector2 getTouchpadFingerPosition();
+            Dictionary getDeviceList();
     };
 }
 

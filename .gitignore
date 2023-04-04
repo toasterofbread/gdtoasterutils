@@ -22,3 +22,5 @@ mono_crash.*.json
 *~
 
 bin/
+*.os
+*.out

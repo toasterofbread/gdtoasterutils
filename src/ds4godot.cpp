@@ -5,8 +5,23 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <linux/input.h>
+#include <libinput.h>
 
 using namespace godot;
+
+static int open_restricted(const char *path, int flags, void *user_data){
+    int fd = open(path, flags);
+    return fd < 0 ? -errno : fd;
+}
+
+static void close_restricted(int fd, void *user_data){
+    close(fd);
+}
+
+const static struct libinput_interface interface = {
+    .open_restricted = open_restricted,
+    .close_restricted = close_restricted,
+};
 
 void DS4Godot::_bind_methods() {
     ClassDB::bind_method(D_METHOD("open", "device_path"), &DS4Godot::openDevice);
@@ -15,6 +30,8 @@ void DS4Godot::_bind_methods() {
     ClassDB::bind_method(D_METHOD("grab"), &DS4Godot::grab);
     ClassDB::bind_method(D_METHOD("ungrab"), &DS4Godot::ungrab);
     ClassDB::bind_method(D_METHOD("getTouchpadFingerPosition"), &DS4Godot::getTouchpadFingerPosition);
+    ClassDB::bind_method(D_METHOD("getDeviceList"), &DS4Godot::getDeviceList);
+    ClassDB::bind_method(D_METHOD("getResolution"), &DS4Godot::getResolution);
 
     ADD_SIGNAL(MethodInfo("finger_position_changed", PropertyInfo(Variant::INT, "finger"), PropertyInfo(Variant::VECTOR2, "position"), PropertyInfo(Variant::VECTOR2, "relative")));
     ADD_SIGNAL(MethodInfo("finger_touching_changed", PropertyInfo(Variant::INT, "finger"), PropertyInfo(Variant::BOOL, "touching")));
@@ -167,6 +184,10 @@ void DS4Godot::_process(double delta) {
     }
 }
 
+Vector2 DS4Godot::getResolution() {
+    return Vector2(1920, 943);
+}
+
 int DS4Godot::openDevice(const String &p_dev_path) {
     if (device >= 0) {
         close(device);
@@ -221,4 +242,38 @@ Vector2 DS4Godot::getTouchpadFingerPosition() {
     }
 
     return Vector2(abs_x.value, abs_y.value);
+}
+
+Dictionary DS4Godot::getDeviceList() {
+    struct udev *udev = udev_new();
+    struct libinput *li = libinput_udev_create_context(&interface, NULL, udev);
+
+    libinput_udev_assign_seat(li, "seat0");
+    libinput_dispatch(li);
+
+    Dictionary ret;
+
+    struct libinput_event *ev;
+    while ((ev = libinput_get_event(li))) {
+
+        if (libinput_event_get_type(ev) == LIBINPUT_EVENT_DEVICE_ADDED){
+            double w = 0, h = 0;
+            struct libinput_device *dev = libinput_event_get_device(ev);
+
+            if(libinput_device_has_capability(dev, LIBINPUT_DEVICE_CAP_POINTER) && libinput_device_get_size(dev, &w, &h) == 0) {
+                char path[20];
+                snprintf(path, sizeof(path), "/dev/input/%s", libinput_device_get_sysname(dev));
+
+                const char* name = libinput_device_get_name(dev);
+                ret[path] = name;
+            }
+        }
+
+        libinput_event_destroy(ev);
+        libinput_dispatch(li);
+    }
+
+    libinput_unref(li);
+
+    return ret;
 }
