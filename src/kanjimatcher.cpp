@@ -34,8 +34,14 @@ void KanjiMatcher::loadModel(const String &model_path) {
 
     recognizer = zinnia::Recognizer::create();
 
-    bool opened = recognizer->open(model_path.utf8().get_data());
-    ERR_FAIL_COND_MSG(!opened, vformat("Opening model at %s failed. %s", model_path, recognizer->what()));
+    if (!recognizer->open(model_path.utf8().get_data())) {
+        const String msg = vformat("Opening model at %s failed. %s", model_path, recognizer->what());
+
+        delete recognizer;
+        recognizer = nullptr;
+
+        ERR_FAIL_MSG(vformat("Opening model at %s failed. %s", model_path, msg));
+    }
 }
 
 void KanjiMatcher::clear() {

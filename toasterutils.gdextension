@@ -4,4 +4,4 @@ entry_symbol = "toasterutils_init"
 
 [libraries]
 
-linux.64="res://addons/ds4godot/bin/libtoasterutils.linux.template_debug.x86_64.so"
+linux.64="res://addons/gdtoasterutils/bin/libtoasterutils.linux.template_debug.x86_64.so"
